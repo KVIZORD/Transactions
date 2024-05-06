@@ -15,7 +15,7 @@ MEMORY_TEST = valgrind --trace-children=yes --leak-check=yes --track-origins=yes
 OPEN_FILE	= xdg-open
 endif
 
-all:
+all: build
 
 build:
 	CC=gcc CXX=g++ cmake -B $(BUILD_DIR) 
@@ -35,9 +35,6 @@ benchmark: build
 cli: build 
 	cmake --build $(BUILD_DIR) --target cli
 	./$(BUILD_DIR)/cli
-
-# hash_table.a: build
-# 	cmake --build $(BUILD_DIR) --target hash_table
 
 leaks: tests
 	$(MEMORY_TEST) $(BUILD_DIR)/tests/$(TEST_EXE) --gtest_filter=-*.*Throw*
@@ -61,7 +58,3 @@ format: build
 
 cppcheck: build
 	cmake --build $(BUILD_DIR) --target cppcheck	
-
-# bptree: build 
-# 	cmake --build $(BUILD_DIR) --target bptree
-# 	./$(BUILD_DIR)/source/model/bptree

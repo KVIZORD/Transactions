@@ -22,23 +22,29 @@ class BPlusTree : public BaseStorage<Key, Value> {
 
   ~BPlusTree() = default;
 
+  BPlusTree() {}
+
+  BPlusTree(const BPlusTree& other) : tree_(other.tree_) {}
+
+  BPlusTree(BPlusTree&& other) noexcept : tree_(std::move(other.tree_)) {}
+
   bool Set(const Key& key, const Value& value) {
-    return tree.Insert(key, new_value{0, value});
+    return tree_.Insert(key, new_value{0, value});
   };
 
   Value Get(const Key& key) const {
-    const new_value& value = tree.Search(key);
+    const new_value& value = tree_.Search(key);
     return value.value;
   };
 
-  bool Exists(const Key& key) const { return tree.Exists(key); };
+  bool Exists(const Key& key) const { return tree_.Exists(key); };
 
-  bool Del(const Key& key) { return tree.Remove(key); };
+  bool Del(const Key& key) { return tree_.Remove(key); };
 
   bool Update(const Key& key, const Value& value) {
     try {
-      const new_value& old = tree.Search(key);
-      return tree.Update(key, new_value{old.ttl, value});
+      const new_value& old = tree_.Search(key);
+      return tree_.Update(key, new_value{old.ttl, value});
     } catch (const std::invalid_argument& err) {
       return false;
     }
@@ -46,26 +52,26 @@ class BPlusTree : public BaseStorage<Key, Value> {
 
   std::vector<Key> Keys() const {
     std::vector<Key> keys;
-    for (auto it = tree.Begin(); it != tree.End(); ++it) {
+    for (auto it = tree_.Begin(); it != tree_.End(); ++it) {
       keys.push_back((*it).first);
     }
     return keys;
   };
 
   bool Rename(const Key& key, const Key& new_key) {
-    if (tree.Exists(new_key) || !tree.Exists(key)) {
+    if (tree_.Exists(new_key) || !tree_.Exists(key)) {
       return false;
     }
-    const new_value value = tree.Search(key);
-    bool res = tree.Remove(key);
+    const new_value value = tree_.Search(key);
+    bool res = tree_.Remove(key);
     if (!res) {
       return false;
     }
-    return tree.Insert(new_key, value);
+    return tree_.Insert(new_key, value);
   };
 
   int Ttl(const Key& key) const {
-    const new_value& value = tree.Search(key);
+    const new_value& value = tree_.Search(key);
     return value.ttl;
   };
 
@@ -73,7 +79,7 @@ class BPlusTree : public BaseStorage<Key, Value> {
     std::vector<Key> result;
     ValueEqual equal;
 
-    for (auto it = tree.Begin(); it != tree.End(); ++it) {
+    for (auto it = tree_.Begin(); it != tree_.End(); ++it) {
       if (equal((*it).second.value, value)) {
         result.push_back((*it).first);
       }
@@ -84,7 +90,7 @@ class BPlusTree : public BaseStorage<Key, Value> {
 
   std::vector<Value> Showall() const {
     std::vector<Value> values;
-    for (auto it = tree.Begin(); it != tree.End(); ++it) {
+    for (auto it = tree_.Begin(); it != tree_.End(); ++it) {
       values.push_back((*it).second.value);
     }
     return values;
@@ -117,7 +123,7 @@ class BPlusTree : public BaseStorage<Key, Value> {
     }
 
     int counter = 0;
-    for (auto it = tree.Begin(); it != tree.End(); ++it) {
+    for (auto it = tree_.Begin(); it != tree_.End(); ++it) {
       file << (*it).first << " " << (*it).second.value << std::endl;
       ++counter;
     }
@@ -125,10 +131,10 @@ class BPlusTree : public BaseStorage<Key, Value> {
     return std::pair<bool, int>(true, counter);
   };
 
-  void Print() { tree.printTree(); }
+  void Print() { tree_.printTree(); }
 
  private:
-  Tree<Key, new_value> tree;
+  Tree<Key, new_value> tree_;
 };
 }  // namespace s21
 

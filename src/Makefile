@@ -39,7 +39,7 @@ cli: build
 # hash_table.a: build
 # 	cmake --build $(BUILD_DIR) --target hash_table
 
-leaks: test
+leaks: tests
 	$(MEMORY_TEST) $(BUILD_DIR)/tests/$(TEST_EXE) --gtest_filter=-*.*Throw*
 
 report: build

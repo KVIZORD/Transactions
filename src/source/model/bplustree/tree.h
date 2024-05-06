@@ -2,7 +2,6 @@
 #define TRANSACTIONS_SOURCE_MODEL_BPLUSTREE_TREE_H_
 
 #include <algorithm>
-#include <iostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -20,11 +19,22 @@ class Tree {
     std::vector<Value> values{};
     Node* left{};
     Node* right{};
+
+    explicit Node(size_t degree, bool is_leaf = true) : is_leaf(is_leaf) {
+      keys.reserve(degree);
+      if (!is_leaf) {
+        children.reserve(degree + 1);
+      } else {
+        values.reserve(degree);
+      }
+    }
   };
+
+  static constexpr size_t kDefaultDegree = 100;
 
   class Iterator {
    public:
-    Iterator(Node* node, size_t ind = 0) : node_(node), ind_(ind){};
+    explicit Iterator(Node* node, size_t ind = 0) : node_(node), ind_(ind){};
 
     Iterator& operator++() noexcept {
       if (node_ == nullptr) {
@@ -56,6 +66,23 @@ class Tree {
   };
 
   Tree() {}
+
+  explicit Tree(size_t degree) noexcept : degree_(degree) {}
+
+  Tree(const Tree& other) : degree_(other.degree_) {
+    for (auto it = other.Begin(); it != other.End(); ++it) {
+      Insert((*it).first, (*it).second);
+    }
+  }
+
+  Tree(Tree&& other) noexcept
+      : degree_(other.degree_),
+        root_(std::move(other.root_)),
+        begin_(std::move(other.begin_)) {
+    other.root_ = nullptr;
+    other.begin_ = nullptr;
+  }
+
   ~Tree() { Clear(root_); }
 
   bool Exists(const Key& key) const {
@@ -70,7 +97,7 @@ class Tree {
   bool Insert(const Key& key, const Value& value) {
     Node* leaf = SearchLeaf(key);
     if (leaf == nullptr) {
-      root_ = new Node;
+      root_ = new Node(degree_, true);
       root_->is_leaf = true;
       root_->keys.push_back(key);
       root_->values.push_back(value);
@@ -82,7 +109,6 @@ class Tree {
     if (middle_it != leaf->keys.end() && *middle_it == key) {
       return false;
     };
-    // size_t insert_index = middle_it - leaf->keys.begin();
     size_t insert_index = std::distance(leaf->keys.begin(), middle_it);
 
     if (middle_it == leaf->keys.end()) {
@@ -98,7 +124,7 @@ class Tree {
       std::rotate(leaf->values.begin() + insert_index, leaf->values.end() - 1,
                   leaf->values.end());
     }
-    if (leaf->keys.size() > 2 * degree) {
+    if (leaf->keys.size() > 2 * degree_) {
       Split(leaf);
     }
     return true;
@@ -144,7 +170,7 @@ class Tree {
   Iterator End() const { return Iterator(nullptr); }
 
  private:
-  size_t degree{100};
+  size_t degree_ = kDefaultDegree;
   Node* root_{};
   Node* begin_{};
 
@@ -238,8 +264,6 @@ class Tree {
       for (auto& item : dst->children) {
         item->parent = dst;
       }
-      // std::for_each(dst->children.begin(), dst->children.end(), [&dst](auto&
-      // item) { item->parent = dst; });
       src->children.erase(src->children.begin() + border + 1,
                           src->children.end());
     }
@@ -249,10 +273,10 @@ class Tree {
     Node* left_neighbor = node->left;
     Node* right_neighbor = node->right;
 
-    if (left_neighbor != nullptr && left_neighbor->keys.size() > degree) {
+    if (left_neighbor != nullptr && left_neighbor->keys.size() > degree_) {
       BorrowFromLeftNeighbor(left_neighbor, node);
     } else if (right_neighbor != nullptr &&
-               right_neighbor->keys.size() > degree) {
+               right_neighbor->keys.size() > degree_) {
       BorrowFromRightNeighbor(node, right_neighbor);
     } else if (left_neighbor && left_neighbor->parent == node->parent) {
       MergeNodes(left_neighbor, node);
@@ -275,7 +299,7 @@ class Tree {
       UpdateRoot(node);
       return is_removed;
     }
-    if (node->keys.size() < degree) {
+    if (node->keys.size() < degree_) {
       Rebalance(node);
     } else {
       RecursiveUpdateKeys(node->parent);
@@ -285,7 +309,6 @@ class Tree {
 
   bool RemoveKeyFromNode(Node* node, const Key& key) {
     auto it = std::lower_bound(node->keys.begin(), node->keys.end(), key);
-    // size_t index = it - node->keys.begin();
     size_t index = std::distance(node->keys.begin(), it);
     if (it == node->keys.end() || node->keys.size() == 0) {
       return false;
@@ -311,7 +334,6 @@ class Tree {
       } else if (it == node->keys.begin() && key < node->keys.front()) {
         node = node->children.front();
       } else {
-        // size_t index = it - node->keys.begin();
         size_t index = std::distance(node->keys.begin(), it);
         node = node->children[index];
       }
@@ -327,19 +349,19 @@ class Tree {
   }
 
   void Split(Node* node) {
-    Node* new_node = new Node;
+    Node* new_node = new Node(degree_, node->is_leaf);
     new_node->left = node;
     new_node->right = node->right;
     if (node->right) {
       node->right->left = new_node;
     }
     node->right = new_node;
-    Key mid_key = node->keys[degree];
+    Key mid_key = node->keys[degree_];
     new_node->is_leaf = node->is_leaf;
     new_node->parent = node->parent;
-    MoveDataToNewNode(node, new_node, degree);
+    MoveDataToNewNode(node, new_node, degree_);
     if (node == root_) {
-      Node* new_root = new Node;
+      Node* new_root = new Node(degree_, false);
       new_root->is_leaf = false;
       new_root->keys.push_back(mid_key);
       new_root->children.push_back(node);
@@ -353,7 +375,6 @@ class Tree {
     Node* parent = node->parent;
     auto mid_it = std::lower_bound(parent->keys.begin(), parent->keys.end(),
                                    new_node->keys.front());
-    // size_t mid_index = mid_it - parent->keys.begin();
     size_t mid_index = std::distance(parent->keys.begin(), mid_it);
 
     parent->keys.push_back(mid_key);
@@ -363,7 +384,7 @@ class Tree {
     std::rotate(parent->children.begin() + mid_index + 1,
                 parent->children.end() - 1, parent->children.end());
 
-    if (parent->keys.size() > 2 * degree) {
+    if (parent->keys.size() > 2 * degree_) {
       Split(parent);
     }
   }

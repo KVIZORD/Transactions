@@ -19,10 +19,17 @@ class BSTNode {
   bool color = Color::Black;
 
   BSTNode() = default;
-  BSTNode(Key key, Value value) {
-    data = std::make_pair(key, value);
-    color = Color::Red;
-  };
+  BSTNode(const Key& key, const Value& value)
+      : data(std::make_pair(key, value)), color(Color::Red){};
+
+  explicit BSTNode(const BSTNode& other)
+      : data(other.data), color(other.color){};
+
+  BSTNode& operator=(const BSTNode& other) {
+    data = other.data;
+    color = other.color;
+    return *this;
+  }
 };
 
 template <typename Key, typename Value,
@@ -37,6 +44,11 @@ class SelfBalancingBinarySearchTree : public BaseStorage<Key, Value> {
   Pointer leaf_;
 
   SelfBalancingBinarySearchTree();
+
+  explicit SelfBalancingBinarySearchTree(
+      const SelfBalancingBinarySearchTree& other);
+  SelfBalancingBinarySearchTree& operator=(
+      const SelfBalancingBinarySearchTree& other);
   ~SelfBalancingBinarySearchTree();
 
   class BSTIterator {
@@ -86,15 +98,15 @@ class SelfBalancingBinarySearchTree : public BaseStorage<Key, Value> {
     Pointer leaf_;
   };
 
-  bool Set(const Key& key, const Value& value);
-  Value Get(const Key& key) const;
-  bool Exists(const Key& key) const;
-  bool Del(const Key& key);
-  bool Update(const Key& key, const Value& value);
-  std::vector<Key> Keys() const;
-  bool Rename(const Key& key, const Key& new_key);
-  std::vector<Key> Find(const Value& value) const;
-  std::vector<Value> Showall() const;
+  bool Set(const Key& key, const Value& value) override;
+  Value Get(const Key& key) const override;
+  bool Exists(const Key& key) const override;
+  bool Del(const Key& key) override;
+  bool Update(const Key& key, const Value& value) override;
+  std::vector<Key> Keys() const override;
+  bool Rename(const Key& key, const Key& new_key) override;
+  std::vector<Key> Find(const Value& value) const override;
+  std::vector<Value> Showall() const override;
 
  private:
   Pointer root_;
@@ -121,9 +133,24 @@ class SelfBalancingBinarySearchTree : public BaseStorage<Key, Value> {
 
 template <typename Key, typename Value, typename ValueEqual>
 SelfBalancingBinarySearchTree<Key, Value,
-                              ValueEqual>::SelfBalancingBinarySearchTree() {
-  root_ = nullptr;
-  leaf_ = new Node();
+                              ValueEqual>::SelfBalancingBinarySearchTree()
+    : leaf_(new Node()), root_(nullptr){};
+
+template <typename Key, typename Value, typename ValueEqual>
+SelfBalancingBinarySearchTree<Key, Value, ValueEqual>::
+    SelfBalancingBinarySearchTree(const SelfBalancingBinarySearchTree& other)
+    : leaf_(new Node()), root_(other.root_){};
+
+template <typename Key, typename Value, typename ValueEqual>
+SelfBalancingBinarySearchTree<Key, Value, ValueEqual>&
+SelfBalancingBinarySearchTree<Key, Value, ValueEqual>::operator=(
+    const SelfBalancingBinarySearchTree& other) {
+  if (this != &other) {
+    if (root_) delete root_;
+    root_ = other.root_;
+    leaf_ = other.leaf_;
+  }
+  return *this;
 }
 
 template <typename Key, typename Value, typename ValueEqual>
@@ -316,7 +343,6 @@ void SelfBalancingBinarySearchTree<
     parent->link[dir] = leaf_;
   }
   delete node;
-  node = nullptr;
 }
 
 template <typename Key, typename Value, typename ValueEqual>
@@ -331,7 +357,6 @@ void SelfBalancingBinarySearchTree<
   if (child->link[1] != leaf_) child->link[1]->parent = node;
 
   delete child;
-  child = nullptr;
 
   if (child_color)
     node->color = Color::Black;
@@ -504,10 +529,9 @@ void SelfBalancingBinarySearchTree<Key, Value, ValueEqual>::ExcludeNode(
 template <typename Key, typename Value, typename ValueEqual>
 void SelfBalancingBinarySearchTree<Key, Value, ValueEqual>::BalanceTree(
     Pointer node) {
-  Pointer uncle;
   while (node->parent != nullptr && node->parent->color == Color::Red) {
     bool dir = NodeIsLeftChild(node->parent);
-    uncle = node->parent->parent->link[dir];
+    Pointer uncle = node->parent->parent->link[dir];
     if (uncle && uncle->color == Color::Red) {
       uncle->color = Color::Black;
       node->parent->color = Color::Black;

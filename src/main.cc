@@ -5,11 +5,9 @@
 #include "view/mainmenu.h"
 
 int main() {
-  s21::HashTable<std::string, s21::Student, s21::StudentComparator> hashtable;
-  s21::SelfBalancingBinarySearchTree<std::string, s21::Student,
-                                     s21::StudentComparator>
-      sbbst;
-  s21::BPlusTree<std::string, s21::Student, s21::StudentComparator> bplustree;
+  s21::HashTable<std::string, s21::Student> hashtable;
+  s21::SelfBalancingBinarySearchTree<std::string, s21::Student> sbbst;
+  s21::BPlusTree<std::string, s21::Student> bplustree;
 
   s21::Controller controller_1(hashtable);
   s21::Controller controller_2(sbbst);

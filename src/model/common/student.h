@@ -21,13 +21,6 @@ struct Student {
   friend std::istream& operator>>(std::istream& in, Student& student);
 };
 
-struct StudentComparator {
-  const std::string kStrIgnored = "-";
-  const int kIntIgnored = std::numeric_limits<int>::min();
-
-  bool operator()(const Student& student_1, const Student& student_2) const;
-};
-
 }  // namespace s21
 
 #endif  // TRANSACTIONS_SOURCE_MODEL_COMMON_STUDENT_H_
